@@ -20,6 +20,7 @@ proměnné.
 
 <details>
     <summary>VLA</summary>
+
     Novější standardy jazyka C podporují také VLA - variable length arrays. Kompilátory
     implementující VLA umožňují specifikovat délku pole na stacku až za běhu programu,
     což částečně vyvrací předchozí tvrzení. Je ovšem třeba zmínit, že ne všechny kompilátory
