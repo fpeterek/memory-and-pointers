@@ -36,7 +36,7 @@ všechny proměnné definované v dané funkci.
     Linker `ld` defaultně nastavuje velikost stacku na 8 MB. Velikost stacku však lze
     nastavit jak při linkování, tak dynamicky syscallem, v Linuxu např. pomocí funkce
     [setrlimit](https://linux.die.net/man/2/setrlimit).
-<details>
+</details>
 
 Přístup k proměnným na stacku je rychlý, protože k nim program přistupuje přímo -- ví, kde
 se paměť nachází a může k ní rovnou přistoupit.
