@@ -171,7 +171,7 @@ ukazující na adresu `0x0`. Pokud bychom potřebovali náš pointer nastavit na
 jednoduše nastavit na hodnotu `0`. Místo hodnoty `0` se často využívá makro `NULL`, které je 
 sice definováno jako 0, programátorům však automaticky evokuje pointer a kód je tak čitelnější.
 
-```
+```c
 // Ekvivalentní
 int* ptr = 0;
 int* ptr2 = NULL;
