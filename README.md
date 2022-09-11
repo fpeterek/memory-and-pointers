@@ -164,6 +164,35 @@ hodnotu pointeru, adresu, a to zvládne velmi rychle. Poté však musí adresu i
 a najít správné místo v paměti, aby našel data, na které se naše adresa odkazuje. A právě
 toto vyhledávání v paměti je pomalé.
 
+### Null Pointer
+
+Chceme-li znázornit absenci hodnoty, můžeme využít tzv. null pointer. Null pointer je pointer
+ukazující na adresu `0x0`. Pokud bychom potřebovali náš pointer nastavit na null, můžeme jej
+jednoduše nastavit na hodnotu `0`. Místo hodnoty `0` se často využívá makro `NULL`, které je 
+sice definováno jako 0, programátorům však automaticky evokuje pointer a kód je tak čitelnější.
+
+```
+// Ekvivalentní
+int* ptr = 0;
+int* ptr2 = NULL;
+
+// Chceme-li zkontrolovat, že se pointer neodkazuje na null, stačí jej porovnat s hodnotou makra NULL
+// nebo přímo s nulou
+
+if (ptr != NULL) {
+
+}
+
+// Nebo, protože 0 je považována za nepravdu
+
+if (ptr) {
+    // Provede se pouze pokud
+}
+```
+
+Pozor -- přístup k hodnotě na adrese nula je považován za chybu a vede k pádu programu, protože
+přistupujeme k 'neexistující hodnotě.'
+
 ## Heap
 
 Zatímco stack je třeba zvětšovat manuálně, ale paměť alokovaná na stacku je spravována
@@ -252,6 +281,377 @@ char* correct2() {
 }
 ```
 
-Pokud nám 
+Funkce `malloc` pouze alokuje blok souvislé paměti, nijak už ale nediktuje, jak máme s pamětí
+pracovat. Jedním z obvyklých use-casů je alokace paměti pro instanci datového typu. Jelikož
+`malloc` netuší, jaká data chceme ukládat, musíme sami argumentem specifikovat, kolik bytů
+potřebujeme pro instanci požadovaného datového typu.
 
-## Pointer Arithmetics
+Kolik bytů instance konkrétního typu potřebuje lze zjistit pomocí operátoru `sizeof`. Argumentem
+`sizeof` je datový typ. Při zjišťování velikosti je vhodné využít operátor `sizeof` a nesnažit se
+velikost odhadnout. Odhad totiž nemusí být ani korektní, ani aktuální. Například na většině moderních
+strojů má `int` 4 byty. Standard jazyka C však nikde konkrétní velikost `int`u nespecifikuje. Standard
+jazyka C specifikuje pouze minimální velikost `int`u, kterou uvádí jako 2 byty. Tvrdit tedy, že `int`
+má 4 byty, není korektní, přenosné, a ani future-proof řešení. Podobně problematické můžou být velikosti
+struktur. Velikost struktury nejenže nemusí být kvůli zarovnání rovna součtu velikostí svých atributů,
+ale také se může změnit, když dané struktuře přidáme, odebereme nebo změníme atribut. Pokud
+bychom velikost struktury odhadovali sami, museli bychom při každé změně definice struktury upravit také
+všechny zmínky její velikosti. Oproti tomu operátor `sizeof` se na definici struktury dokáže podívat sám.
+A jelikož velikost struktury je známá již při kompilaci, operátor `sizeof` nemá vůbec žádný dopad na dobu
+běhu programu.
+
+```c
+typedef struct {
+    int a;
+    long b;
+    float c;
+    double d;
+} myStruct;
+
+// Alokujeme paměť přesně pro jeden int
+malloc(sizeof(int));
+
+// Alokujeme paměť přesně pro jednu instanci myStruct
+malloc(sizeof(myStruct));
+
+// Nechceme ale způsobit memory leak, proto si adresu alokované paměti
+// uložíme jako pointer na myStruct
+myStruct* ptr = malloc(sizeof(myStruct));
+
+// Protože malloc vrací void* a ne myStruct*, může si kompilátor stěžovat
+// že nám neodpovídají datové typy
+// V takovém případě stačí pouze přetypovat pointer vrácený `malloc`em
+
+myStruct* ptr = (myStruct*)malloc(sizeof(myStruct));
+
+
+// Samozřejmě můžeme alokovat paměť pro pointery a ukládat na heapu i pointery
+
+int** ptrToPtr = malloc(sizeof(int*));
+```
+
+## Pointer Arithmetics a pole
+
+Častým use-casem pro paměť alokovanou na heapu jsou také homogenní pole (datová struktura array). Chceme-li
+alokovat paměť pro pole velikosti `n`, stačí nám alokovat paměť pro `n`-krát prvek v poli.
+
+```c
+// Alokujeme paměť pro 1024 intů
+malloc(1024 * sizeof(int));
+
+// Neměli zapomenout uložit adresu
+myStruct* ptr = malloc(1024 * sizeof(myStruct));
+
+// A případně také přetypovat pointer
+myStruct* ptr = (myStruct*)malloc(1024 * sizeof(myStruct));
+
+// Alokace pole pointerů je stejná jako alokace jakéhokoliv jiného pole
+int** ptrToPtr = (int**)malloc(1024 * sizeof(int*));
+```
+
+Pole tedy alokovat umíme, a umíme také přistoupit k prvku, na který pointer ukazuje pomocí operátoru
+indirekce. Nyní je vhodné si připomenout, že `malloc` alokuje souvislý blok paměti a vrátí pointer
+na začátek tohoto bloku. Pokud alokujeme paměť pouze pro jeden prvek, není třeba nic víc řešit.
+Pokud však alokujeme paměť pro více prvků, musíme si uvědomit, že budou naše prvky následovat jeden
+po druhém těsně za sebou.
+
+<details>
+    <summary>Nebo by alespoň měly</summary>
+
+    Prvky teoreticky nemusí být uspořádané těsně za sebou. Jak si naši paměť uspořádáme a jak ji budeme
+    interpretovat je čistě na nás. Kompilátor ale má zabudovanou speciální podporu pro homogenní pole,
+    kteoru je vhodné využívat, a navíc by bylo zbytečně neefektivní alokovat prázdná nevyužívaná místa.
+    Proto budeme předpokládat, že prvky v poli následují jeden po druhém a nejsou mezi nimi mezery.
+</details>
+
+Pro přístup k jinému než prvnímu prvku pole tedy musíme inkrementovat pointer na adresu požadovaného prvku.
+Za tímto účelem standard jazyka C definuje tzv. *aritmetiku pointerů* (*pointer arithmetics*). Aritmetika
+pointerů je rozdílná od aritmetických operací nad čísly. Nedává moc smysl násobit adresy mezi sebou, podobně
+tak nedává smysl počítat kosinus adresy. Dává ale smysl říct, která adresa bude následovat současnou adresu.
+Jaká bude adresa prvku vzdáleného tři prvky od současné adresy. Kolik prvků (validních adres) se nachází mezi
+dvěma adresami. A právě k tomuhle účelu slouží aritmetika pointerů.
+
+Nejjednodušším příkladem je inkrementace pointeru. Kompilátor zde využívá znalosti datového typu dat, na které
+pointer ukazuje. Například pracujeme-li s `int*`, kompilátor ví, že `int*` ukazuje na `int`y a zná tedy velikost
+prvků v poli. Máme-li ukazatel ukazující na `int`, a chceme-li získat adresu následujícího `int`u, stačí
+k našemu pointeru přičíst `1`. Výsledkem přičtení 1 k našemu pointeru bude pointer, který ukazuje na `int`
+'o jednu adresu dále'. Přičtením 1 nepřičteme k adrese 1, přičtením 1 adresu posuneme o jeden prvek dále.
+
+Pro představu prozatím postačí si představit, že přičtením 1 k `int*` se k adrese, na kterou ukazuje `int*`,
+automaticky přičtou 4 byty, protože kompilátor ví, že `int` na naší architektuře využívá 4 byty, a že adresa
+na následující `int` musí být adresa 'o 4 byty dále.' Tato představa není úplně korektní, protože není
+dostatečně abstraktní, ale reálně se na moderních počítačích děje přesně toto.
+
+Logicky lze odvodit (nebo induktivně definovat), že pro přístup k `n`-tému prvku stačí přičíst `n`.
+
+Jakmile pomocí aritmetiky pointerů získáme námi požadovanou adresu, stačí k prvku přistoupit pomocí operátoru
+indirekce.
+
+```
+int* array = (int*)malloc(10 * sizeof(int));
+//         ^  ^           ^    ^
+//         |  |           |    Velikost prvku, který chceme v poli ukládat
+//         |  |           Kolik prvků chceme v poli ukládat
+//         |  Přetypujeme výsledek malloc z void* na int*          
+//         Pointer vracený mallocem uložíme do námi definované proměnné
+
+// Přístup k prvnímu prvku v poli pomocí operátoru indirekce
+*array;
+
+// Adresa druhého prvku v poli -- adresa prvku následujícího první prvek
+array + 1;
+
+// Přístup k druhému prvku pomocí operátoru indirekce
+*(array + 1);
+
+// Přístup k n-tému prvku pomocí operátoru indirekce
+*(array + n);
+
+// Naplníme array hodnotami 0 až 9
+for (int i = 0; i < 10; ++i) {
+    *(array + i) = i;
+}
+
+// Nakonec nesmíme zapomenout paměť uvolnit
+free(array);
+```
+
+I v případě aritmetiky pointerů můžeme používat zkratky, které známe z aritmetiky čísel.
+
+```c
+int* ptr = (int*)malloc(10 * sizeof(int));
+
+// Všechny následující výrazy jsou ekvivalentní
+ptr = ptr + 1;
+ptr += 1;
+++ptr;
+
+// Samozřejmě lze získat také adresu předcházejícího prvku
+ptr = ptr - 1;
+ptr -= 1;
+--ptr;
+```
+
+Dále dává smysl odčítat adresu od adresy. Tato operace dává smysl, pokud známe dvě adresy,
+ale nevíme, kolik prvků je odděluje.
+
+```c
+
+// Funkce najde adresu prvního výskytu prvku item
+// Funkce předpokládá, že se prvek v poli vyskytuje, v opačném případě program spadne
+int* find_first(int* arr, int item) {
+    for (; *arr != item; ++arr);
+    return arr;
+}
+
+int main(int argc, const char * argv[]) {
+
+    int* arr = get_arr();
+    int* first_eight = find_first(arr, 8);
+
+    // Známe adresu začátku pole a adresu první osmičky
+    // Můžeme dopočítat, kolik prvků dělí první osmičku
+    // od začátku pole -- index první osmičky
+    first_eight - arr;
+
+
+    return 0;
+}
+```
+
+Přičítat dvě adresy k sobě smysl nedává.
+
+Pro přístup k n-tému prvku také existuje syntaktický cukr, který je ekvivalentní využití
+aritmetiky pointerů a operátoru indirekce, ale vypadá o trochu lépe. Tímto syntaktickým
+cukrem je myšlen operátor přístupu k prvku pole `[]`. Využití je jednoduché -- za pointer
+připíšeme hranaté závorky, ve kterých uvedeme index prvku, ke kterému chceme přistoupit.
+Operátor `[]` pak pointer automaticky dereferencuje, jeho použitím tedy získáme přímo prvek,
+na který pointer ukazuje, ne adresu prvku.
+
+```c
+int* arr = (int*)malloc(10 * sizeof(int));
+
+// Výrazy jsou ekvivalentní, výraz vpravo však ve spoustě případů vypadá lépe
+*(arr + n) == arr[n];
+```
+
+### Změna velikosti bloku alokované paměti
+
+Pokud nám velikost alokovaného bloku nestačí -- často např. pokud potřebujeme zvětšit velikost
+pole, případně pokud je pole zbytečně velké a můžeme jej zmenšit, můžeme využít funkci `realloc`
+pro změnu velikosti bloku již alokované paměti. Funkce `realloc` přijímá dva argumenty, pointer
+na již alokovanou paměť, a požadovanou velikost. Interně funkce `realloc` alokuje nový blok 
+paměti, zkopíruje data ze starého bloku do nového, a starý blok uvolní. Nakonec vrátí adresu
+nového bloku.
+
+```c
+// Alokujeme paměť
+int* ptr = (int*)malloc(10 * sizeof(int));
+
+// Zvětšíme velikost bloku z 10 intů na 20
+ptr = (int*)realloc(ptr, 20 * sizeof(int));
+
+// Nakonec nesmíme zapomenout paměť uvolnit
+free(ptr);
+```
+
+## Rekapitulace
+
+```c
+
+int x;
+
+// Získání adresy hodnoty proměnné x
+&x;
+
+// Uložení adresy do proměnné
+int* ptr = &x;
+
+// Operátor indirekce
+*ptr;
+*ptr = 10;
+
+x == 10; // true
+
+// Alokace deseti bytů
+
+malloc(10);
+
+// Uložení adresy alokované paměti
+
+char* bytes = malloc(10);
+
+// Uvolnění paměti
+
+free(bytes);
+
+// Alokace paměti pro deset intů
+
+malloc(10 * sizeof(int));
+
+// Přetypování pointeru vráceného mallocem na int*
+
+(int*)malloc(10 * sizeof(int));
+
+// Uložení získaného pointeru do proměnné
+
+int* ints = (int*)malloc(10 * sizeof(int));
+
+// Alokace paměti pro deset int*
+malloc(10 * sizeof(int*));
+
+// Alokace paměti pro deset int**
+malloc(10 * sizeof(int**));
+
+// Pointer na int
+int*
+
+// Pointer na pointer na int
+int**
+
+// Pointer na pointer na pointer na int
+int***
+
+// Pointer na float
+float*
+
+// Pointer na následující prvek
+ints + 1;
+
+// Pointer na n-tý prvek
+ints + n;
+
+// n-tý prvek
+*(ints + n);
+ints[n];
+```
+
+## Const pointery
+
+Poněkud matoucí může být také `const`-ness pointerů. Zde je třeba si uvědomit, že rozlišujeme
+pointery na konstantní data a konstantní pointery. Pointer na konstantní data je nekonstantní,
+můžeme jej mutovat, ale nemůžeme mutovat data, na které pointer ukazuje. Konstatní pointer
+mutovat nemůžeme, protože se jedná o konstatní proměnnou. 
+
+```c
+
+// Nekonstantní pointer na nekonstantní data, můžeme mutovat, jak se nám zlíbí
+int* ptr = get_arr();
+// Můžeme mutovat pointer
+++ptr;
+// I data
+*ptr = 10;
+
+
+// Nekonstantní pointer na konstantní data, můžeme mutovat pouze pointer, data ne
+const int* ptr = get_arr();
+++ptr;
+
+// Konstatní pointer na nekonstantní data. Můžeme mutovat data, pointer ne
+// Pointer můžeme zkopírovat a pracovat se zkopírovanou hodnotou, ale hodnotu
+// proměnné ptr nezměníme
+int* const ptr = get_arr();
+*(ptr + 10) = 20;
+
+// Konstatní pointer na konstantní data. Můžeme k datům přistupovat, ale nemůžeme mutovat
+// ani pointer, ani data
+const int* const ptr = get_arr();
+*(ptr + 10);
+```
+
+## Příklady využití pointerů a dynamické alokace paměti
+
+```c
+
+// Alokace pole
+
+int* get_int_array(const long size) {
+    return (int*)malloc(size * sizeof(int));
+}
+
+// Linked List
+
+typedef struct List {
+    int head;
+    List* tail;
+} List;
+
+List* cons(const int item, List* const tail) {
+    List* head = (List*)malloc(sizeof(List));
+    head->head = item;
+    head->tail = tail;
+
+    return head;
+}
+
+List* get_list(const int size) {
+
+    List* list = 0;
+
+    for (int i = 0; i < size; ++i) {
+        list = cons(i, list);
+    }
+    
+    return list;
+}
+
+// 2D Matrix
+
+int** alloc_matrix(const int rows, const int cols) {
+
+    // Matice má rows řádků, proto alokujeme rows pointerů
+    // Každý pointer ukazuje na jeden řádek tabulky
+    int** matrix = (int**)malloc(sizeof(int*) * rows);
+
+    // Matice má cols sloupců, proto pro každý řádek alokujeme
+    // pole o velikosti cols intů
+    for (int i = 0; i < rows; ++i) {
+        matrix[i] = (int*)malloc(sizeof(int) * cols);
+    }
+
+    return matrix;
+}
+
+// Přístup k prvku matice na a-tém řádku v b-tém sloupci
+// matrix[a][b];
+```
+
