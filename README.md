@@ -392,7 +392,7 @@ Logicky lze odvodit (nebo induktivně definovat), že pro přístup k `n`-tému 
 Jakmile pomocí aritmetiky pointerů získáme námi požadovanou adresu, stačí k prvku přistoupit pomocí operátoru
 indirekce.
 
-```
+```c
 int* array = (int*)malloc(10 * sizeof(int));
 //         ^  ^           ^    ^
 //         |  |           |    Velikost prvku, který chceme v poli ukládat
