@@ -186,7 +186,7 @@ if (ptr != NULL) {
 // Nebo, protože 0 je považována za nepravdu
 
 if (ptr) {
-    // Provede se pouze pokud
+    // Provede se pouze pokud ptr není roven 0x0
 }
 ```
 
@@ -328,6 +328,12 @@ myStruct* ptr = (myStruct*)malloc(sizeof(myStruct));
 
 int** ptrToPtr = malloc(sizeof(int*));
 ```
+
+Také je důležité zmínit, že není vhodné přistupovat mimo hranice alokované paměti. V lepším případě
+přistoupíme k paměti, která nenáleží programu, a operační systém program zabije, v horším případě špatně
+interpretujeme nebo modifikujeme úplně jiná data, než ta, se kterými chceme pracovat, a způsobíme chybu,
+která se může projevit na úplně jiném místě v programu, než kde byla způsobena. Proto není vhodné přistupovat
+k náhodným adresám nebo mimo blok paměti alokovaný `malloc`em (případně jiným alokátorem).
 
 ## Pointer Arithmetics a pole
 
