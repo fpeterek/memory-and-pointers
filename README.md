@@ -165,3 +165,93 @@ a najít správné místo v paměti, aby našel data, na které se naše adresa 
 toto vyhledávání v paměti je pomalé.
 
 ## Heap
+
+Zatímco stack je třeba zvětšovat manuálně, ale paměť alokovaná na stacku je spravována
+automaticky, paměť alokovanou na heapu musíme spravovat manuálně, ovšem, poněkud ironicky,
+heap se rozšiřuje automaticky podle potřeb programu a možností operačního systému.
+
+Jelikož se paměť na heapu neuvolňuje automaticky, používáme heap, abychom si alokovali
+paměť, která se nám nezahodí při zahození stack framu. Paměť na heapu se uvolní teprve
+když o to manuálně zažádáme, případně po doběhnutí programu. Není nijak vázána na mechanismus
+callstacku. Na heap tedy alokujeme paměť, kterou nechceme zbytečně kopírovat, podobně jako
+bychom to museli udělat s pamětí na stacku. Dále na heapu ukládáme objemnější data, u kterých
+by hrozilo, že velmi rychle zaplní celý stack.
+
+### Využití paměti na heapu
+
+K alokaci paměti na heapu slouží funkce `malloc`. Funkce `malloc` přijímá jeden jediný argument
+-- kolik bytů má alokovat. `malloc` interně získá požadovanou paměť -- a v tom momentě nastává
+problém. Paměť je alokovaná na nějakém náhodném místě v paměti počítače. Jak k ní přistoupíme?
+Jak nám `malloc` řekne, kde se nachází naše paměť? Adresou. `malloc` po alokaci paměti vrátí
+adresu -- pointer na místo v paměti.
+
+```c
+// Alokujeme 20 bytů a uložíme si adresu alokované paměti
+char* ptr = malloc(20);
+
+// Velikost paměti nemusí být známa předem, stačí ji vypočítat těsně před alokací
+char* ptr2 = malloc(get_size());
+```
+
+S alokovanou pamětí poté můžeme nakládat, jak chceme, neměli bychom ale ztratit pointer na tuto
+paměť, jinak paměť zůstane alokována a nebudeme ji moct využít ani uvolnit. Této situaci se říká
+memory leak a je důsledkem nesprávného zacházení s pamětí. Na memory leaky trpělo například
+Dragon Age: Origins, které bylo potřeba pravidelně restartovat, jinak hrozilo, že se hra nejprve
+začne zpomalovat, až nakonec spadne úplně.
+
+Abychom neztratili pointer na paměť, je třeba pointer vrátit z funkce, která jej alokuje, případně
+pomocí pointeru na pointer modifikovat již existující pointer odjinud. Kvůli čitelnosti kódu bychom
+měli preferovat první řešení.
+
+```c
+char* alloc_memory() {
+    // Alokujeme 1GB paměti
+    char* mem = malloc(1024 * 1024 * 1024);
+
+    process(mem);
+
+    // Vrátíme pointer na paměť
+    return mem;
+}
+
+int main(int argc, const char* argv[]) {
+
+    // Adresu alokované paměti si uložíme do proměnné, abychom s ní mohli dále pracovat
+    char* mem = alloc_memory();
+
+    ...
+
+    return 0;
+}
+```
+
+Paměť uvolníme pomocí funkce `free`. Funkce `free` přijímá jeden argument -- adresu paměti, kterou
+chceme uvolnit. `free` bychom měli na každý blok alokované paměti volat přesně jednou, v momentě,
+kdy už paměť nepotřebujeme. Paměť se tak uvolní pro další využití programem.
+
+
+```c
+void incorrect() {
+    char* mem = malloc(1000);
+    // Při opouštění funkce ani nevrátíme pointer na alokovanou paměť, ani paměť neuvolníme,
+    // dochází k leaku
+    return;
+}
+
+void correct1() {
+    char* mem = malloc(1000);
+    // Paměť uvolníme, když už ji nepotřebujeme, nedochází k leaku
+    free(mem);
+}
+
+char* correct2() {
+    // Paměť alokujeme a vrátíme její adresu
+    // K leaku momentálně nedochází, paměť totiž můžeme uvolnit později podle potřeby
+    // K leaku by však došlo, pokud bychom paměť neuvolnili v programu později
+    return malloc(1000);
+}
+```
+
+Pokud nám 
+
+## Pointer Arithmetics
