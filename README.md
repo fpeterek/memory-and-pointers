@@ -140,7 +140,7 @@ modifikovat lokální proměnnou.
 
 // Funkce, která přijímá pointer
 void double_in_place(int* data) {
-    data = 2 * *data;
+    *data = 2 * *data;
 }
 
 int main(int argc, const char* argv[]) {
