@@ -19,24 +19,25 @@ funkci předány. Dále se alokuje přesně tolik paměti, kolik funkce využív
 proměnné.
 
 <details>
-    <summary>VLA</summary>
+<summary>VLA</summary>
 
-    Novější standardy jazyka C podporují také VLA - variable length arrays. Kompilátory
-    implementující VLA umožňují specifikovat délku pole na stacku až za běhu programu,
-    což částečně vyvrací předchozí tvrzení. Je ovšem třeba zmínit, že ne všechny kompilátory
-    VLA podporují. Pokud konkrétní kompilátor VLA nepodporuje, bude definovat makro 
-    `__STDC_NO_VLA__`.
+Novější standardy jazyka C podporují také VLA - variable length arrays. Kompilátory
+implementující VLA umožňují specifikovat délku pole na stacku až za běhu programu,
+což částečně vyvrací předchozí tvrzení. Je ovšem třeba zmínit, že VLA je přímo standardem
+jazyka C definováno jako volitelné, a ani standard compliant kompilátory nemusí VLA
+podporovat. Pokud konkrétní kompilátor VLA nepodporuje, bude definovat makro
+`__STDC_NO_VLA__`.
 </details>
 
 Při návratu z funkce je stack frame zahozen. Společně s ním jsou také automaticky zahozeny
 všechny proměnné definované v dané funkci.
 
 <details>
-    <summary>Velikost stacku</summary>
+<summary>Velikost stacku</summary>
 
-    Linker `ld` defaultně nastavuje velikost stacku na 8 MB. Velikost stacku však lze
-    nastavit jak při linkování, tak dynamicky syscallem, v Linuxu např. pomocí funkce
-    [setrlimit](https://linux.die.net/man/2/setrlimit).
+Linker `ld` defaultně nastavuje velikost stacku na 8 MB. Velikost stacku však lze
+nastavit jak při linkování, tak dynamicky syscallem, v Linuxu např. pomocí funkce
+[setrlimit](https://linux.die.net/man/2/setrlimit).
 </details>
 
 Přístup k proměnným na stacku je rychlý, protože k nim program přistupuje přímo -- ví, kde
@@ -361,12 +362,12 @@ Pokud však alokujeme paměť pro více prvků, musíme si uvědomit, že budou 
 po druhém těsně za sebou.
 
 <details>
-    <summary>Nebo by alespoň měly</summary>
+<summary>Nebo by alespoň měly</summary>
 
-    Prvky teoreticky nemusí být uspořádané těsně za sebou. Jak si naši paměť uspořádáme a jak ji budeme
-    interpretovat je čistě na nás. Kompilátor ale má zabudovanou speciální podporu pro homogenní pole,
-    kteoru je vhodné využívat, a navíc by bylo zbytečně neefektivní alokovat prázdná nevyužívaná místa.
-    Proto budeme předpokládat, že prvky v poli následují jeden po druhém a nejsou mezi nimi mezery.
+Prvky teoreticky nemusí být uspořádané těsně za sebou. Jak si naši paměť uspořádáme a jak ji budeme
+interpretovat je čistě na nás. Kompilátor ale má zabudovanou speciální podporu pro homogenní pole,
+kteoru je vhodné využívat, a navíc by bylo zbytečně neefektivní alokovat prázdná nevyužívaná místa.
+Proto budeme předpokládat, že prvky v poli následují jeden po druhém a nejsou mezi nimi mezery.
 </details>
 
 Pro přístup k jinému než prvnímu prvku pole tedy musíme inkrementovat pointer na adresu požadovaného prvku.
