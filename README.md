@@ -40,9 +40,6 @@ nastavit jak při linkování, tak dynamicky syscallem, v Linuxu např. pomocí 
 [setrlimit](https://linux.die.net/man/2/setrlimit).
 </details>
 
-Přístup k proměnným na stacku je rychlý, protože k nim program přistupuje přímo -- ví, kde
-se paměť nachází a může k ní rovnou přistoupit.
-
 ### Využití paměti na stacku
 
 Proměnné jsou automaticky alokovány na stacku. Chceme-li tedy využít stack, stačí nám
