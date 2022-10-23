@@ -36,12 +36,55 @@ všechny proměnné definované v dané funkci.
 <summary>Velikost stacku</summary>
 
 Linker `ld` defaultně nastavuje velikost stacku na 8 MB. Velikost stacku však lze
-nastavit jak při linkování, tak dynamicky syscallem, v Linuxu např. pomocí funkce
-[setrlimit](https://linux.die.net/man/2/setrlimit).
+nastavit nejen při linkování, ale také dynamicky syscallem, v Linuxu např. pomocí funkce
+[setrlimit](https://linux.die.net/man/2/setrlimit), nebo pro všechny podprocesy
+instance shellu [pomocí builtinu `ulimit`](https://fossies.org/linux/zsh/Doc/help/ulimit).
 </details>
 
-Přístup k proměnným na stacku je rychlý, protože k nim program přistupuje přímo -- ví, kde
-se paměť nachází a může k ní rovnou přistoupit.
+Přístup k paměti na stacku je rychlý. Adresu stacku známe, layout rámce známe také.
+Program si tak může spočítat pozici proměnné na stacku a přistoupit k ní v rámci jednoho
+přístupu do paměti. Pokud bychom chtěli přistoupit k proměnné na heapu, museli bychom
+si nejdřív přečíst adresu dané proměnné ze stacku, a až poté bychom mohli přistoupit
+na heap ([viz sekce Pointery](#Pointery)).
+
+<details>
+<summary>Cachování v registrech</summary>
+
+Předchozí odstavec platí v obecném případě. Pokud kompilátor dojde k závěru, že je
+pointer na heap příliš důležitý, může se rozhodnout jej cachovat přímo v registru CPU.
+V takovém případě by nebylo potřeba na stack přistupovat vůbec, procesor by si adresu
+vždy přečetl z registru.
+
+Pokud bychom chtěli kompilátoru naznačit, že je vhodné ukládat danou hodnotu v registru,
+můžeme tak udělat pomocí klíčového slova `register`.
+
+```c
+register int* ptr = get_ptr()
+```
+
+Klíčové slovo `register` však není vhodné používat. V C++ již bylo odstraněno, a i v C
+může být ignorováno. Kompilátor se navíc sám dokáže rozhodnout, zda bude vhodnější
+uložit hodnotu v registru CPU, nebo ne. Modifikátor `register` by tak měl být používán
+pouze v krajních případech, mezi které nepatří žádný z úkolů v předmětu UPR na VŠB FEI.
+</details>
+
+Při přístupu na stack většinou přistupujeme k proměnným definovaným uvnitř jedné funkce.
+Tyto proměnné tak budou uložené v jednom framu (ve framu dané funkce), a protože rámce
+na stacku bývají malé a paměť v nich je souvislá, lze paměť na stacku efektivně cachovat.
+
+Alokace paměti na stacku také bývá velmi rychlá. Pokud potřebujeme alokovat paměť na stacku,
+vždy ji budeme alokovat na vrcholu stacku. Program pouze přičte počet požadovaných bytů
+k již alokované paměti a může paměť využívat.
+
+<details>
+<summary>Alokace stacku</summary>
+
+Samotný stack je alokován a spravován operačním systémem. Paměť stacku není alokována celá
+při spuštění programu. Aby kernel šetřil zdroje počítače, alokuje pouze část z maximální
+velikosti stacku, a stack zvětší pouze pokud detekuje, že je potřeba tak učinit. O fungování
+alokace stacku v OS Linux si lze
+[více přečíst např. zde](https://unix.stackexchange.com/questions/145557/how-does-stack-allocation-work-in-linux)
+</details>
 
 ### Využití paměti na stacku
 
